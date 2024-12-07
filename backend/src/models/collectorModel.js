@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const collectorSchema = new mongoose.Schema({
   discussionId: {
     type: mongoose.Schema.Types.ObjectId,

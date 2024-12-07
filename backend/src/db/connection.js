@@ -7,6 +7,7 @@ let url = `mongodb+srv://nilay:${mongo_db_password}@cluster0.6zfqt.mongodb.net/`
 
 console.log('Connection URL:', url);
 console.log('AAA');
+console.log(`password: ${mongo_db_password}`);
 
 const connectToMongo = () => {
   mongoose.connect(url);

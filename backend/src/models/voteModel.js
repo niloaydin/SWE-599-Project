@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const voteSchema = new mongoose.Schema({
   collectorId: {
     type: mongoose.Schema.Types.ObjectId,
