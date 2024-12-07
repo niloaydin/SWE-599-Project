@@ -14,6 +14,7 @@ const voteSchema = new mongoose.Schema({
     enum: ['yes', 'no', 'abstention'],
     required: true,
   },
+  isStarted: { type: Boolean, default: false },
 });
 
 const Vote = mongoose.model('Vote', voteSchema);

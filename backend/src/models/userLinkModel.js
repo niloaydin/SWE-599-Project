@@ -5,7 +5,7 @@ const userLinkSchema = new mongoose.Schema({
     required: true,
   },
   linkUUID: { type: String, required: true },
-  email: { type: String, required: true },
+  email: { type: String},
 });
 
 const UserLink = mongoose.model('UserLink', userLinkSchema);
