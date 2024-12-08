@@ -3,6 +3,11 @@ const voteForDiscussion = async (req, res) => {
     console.log("voteForDiscussion controller");
 }
 
-const discardVoteForDiscussion = async (req, res) => {
-    console.log("discardVoteForDiscussion controller");
+const removeVoteForDiscussion = async (req, res) => {
+    console.log("removeVoteForDiscussion controller");
+}
+
+module.exports={
+    voteForDiscussion,
+    removeVoteForDiscussion
 }
