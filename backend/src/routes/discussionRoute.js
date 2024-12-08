@@ -11,14 +11,14 @@ router.post(
     '/:discussionLink/create-collector',
     discussionController.createCollectorForDiscussion
 );
-router.post(
-    '/:discussionLink/create-general-link',
-    discussionController.createDiscussionGeneralLink
-);
-router.post(
-    '/:discussionLink/create-personalized-link',
-    discussionController.createPersonalizedDiscussionLink
-);
+// router.post(
+//     '/:discussionLink/create-general-link',
+//     discussionController.createDiscussionGeneralLink
+// );
+// router.post(
+//     '/:discussionLink/create-personalized-link',
+//     discussionController.createPersonalizedDiscussionLink
+// );
 
 router.post('/:discussionLink/:userLink/vote', voteController.voteForDiscussion);
 router.delete('/:discussionLink/:userLink/vote/:voteId', voteController.removeVoteForDiscussion);

@@ -2,6 +2,7 @@ const CreatorModel = require('../models/creatorModel');
 const DiscussionModel = require('../models/discussionModel');
 const UserLinkModel = require('../models/userLinkModel');
 const CollectorModel = require('../models/collectorModel');
+const CommentModel = require('../models/commentModel');
 const { generateRandomString } = require('../utils/discussionUtils');
 
 const createDiscussion = async (req, res) => {
@@ -44,9 +45,37 @@ const createDiscussion = async (req, res) => {
 };
 
 const getSingleDiscussion = async (req, res) => {
-  console.log('getDiscussion controller');
-  return res.status(200).json({ message: 'getDiscussion controller' });
-};
+  const { discussionLink, userLink } = req.params;
+  try {
+    const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+    if (!discussion) {
+      return res.status(404).json({ error: 'Discussion not found' });
+    }
+    const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+    if (!userLinkData) {
+      return res.status(404).json({ error: 'You cannot review this discussion!' });
+    }
+
+    const comments = await CommentModel.find({ discussionId: discussion._id });
+    const prosComments = comments.filter((comment) => comment.commentType === 'pros').map((comment) => comment.content);
+    const consComments = comments.filter((comment) => comment.commentType === 'cons').map((comment) => comment.content);
+
+
+    const discussionData = {
+      title: discussion.title,
+      description: discussion.description,
+      startDate: discussion.startDate,
+      endDate: discussion.endDate,
+      isVotingStarted: discussion.isVotingStarted,
+      prosComments: prosComments,
+      consComments: consComments
+    }
+
+    return res.status(200).json({ message: discussionData });
+  } catch (error) {
+    return res.status(400).json({ message: error.message });
+  };
+}
 
 const createCollectorForDiscussion = async (req, res) => {
   const { discussionLink } = req.params;
@@ -108,20 +137,18 @@ const createCollectorForDiscussion = async (req, res) => {
   }
 };
 
-const createDiscussionGeneralLink = async (req, res) => {
-  console.log('createDiscussionGeneralLink controller');
-  return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
-};
+// const createDiscussionGeneralLink = async (req, res) => {
+//   console.log('createDiscussionGeneralLink controller');
+//   return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
+// };
 
-const createPersonalizedDiscussionLink = async (req, res) => {
-  console.log('createPersonalizedDiscussionLink controller');
-  return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
-};
+// const createPersonalizedDiscussionLink = async (req, res) => {
+//   console.log('createPersonalizedDiscussionLink controller');
+//   return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
+// };
 
 module.exports = {
   createDiscussion,
   getSingleDiscussion,
-  createCollectorForDiscussion,
-  createDiscussionGeneralLink,
-  createPersonalizedDiscussionLink,
+  createCollectorForDiscussion
 };
