@@ -1,7 +1,39 @@
+const CreatorModel = require('../models/creatorModel');
+const DiscussionModel = require('../models/discussionModel');
+const UserLinkModel = require('../models/userLinkModel');
+const CollectorModel = require('../models/collectorModel');
+const CommentModel = require('../models/commentModel');
 
 const commentOnDiscussion = async (req, res) => {
-    console.log("commentOnDiscussion controller");
-    return res.status(200).json({ message: 'commentOnDiscussion controller' });
+    const { discussionLink, userLink } = req.params;
+    const { content, commentType } = req.body;
+
+    try {
+        const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+        if (!discussion) {
+          return res.status(404).json({ error: 'Discussion not found' });
+        }
+        const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+        if (!userLinkData) {
+          return res.status(404).json({ error: 'You cannot review this discussion!' });
+        }
+
+        if (!content || !['pros', 'cons'].includes(commentType)) {
+            return res.status(400).json({ message: 'Invalid comment data.' });
+          }
+
+        await CommentModel.create({
+            collectorId: userLinkData.collectorId,
+            discussionId: discussion._id,
+            content: content,
+            commentType: commentType
+        })
+
+        return res.status(200).json({ message: "comment created!" });
+    
+    } catch (error) {
+        return res.status(400).json({ message: error.message });
+    }
 }
 
 const getCommentsForDiscussion = async (req, res) => {
