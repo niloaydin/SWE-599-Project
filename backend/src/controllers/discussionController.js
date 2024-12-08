@@ -52,7 +52,8 @@ const getSingleDiscussion = async (req, res) => {
       return res.status(404).json({ error: 'Discussion not found' });
     }
     const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
-    if (!userLinkData) {
+
+    if (!userLinkData && userLink !== discussion.adminLink) {
       return res.status(404).json({ error: 'You cannot review this discussion!' });
     }
 
@@ -182,13 +183,13 @@ const createCollectorForDiscussion = async (req, res) => {
 //   }
 // };
 // const createDiscussionGeneralLink = async (req, res) => {
-//   console.log('createDiscussionGeneralLink controller');
-//   return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
+//     console.log('createDiscussionGeneralLink controller');
+//     return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
 // };
 
 // const createPersonalizedDiscussionLink = async (req, res) => {
-//   console.log('createPersonalizedDiscussionLink controller');
-//   return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
+//     console.log('createPersonalizedDiscussionLink controller');
+//     return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
 // };
 
 module.exports = {
