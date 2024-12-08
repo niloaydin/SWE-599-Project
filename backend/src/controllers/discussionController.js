@@ -1,6 +1,43 @@
+const creatorModel = require('../models/creatorModel');
+const discussionModel = require('../models/discussionModel');
+const { generateRandomString } = require('../utils/discussionUtils');
+
 const createDiscussion = async (req, res) => {
-  console.log('createDiscussion controller');
-  return res.status(200).json({ message: 'createDiscussion controller' });
+
+  const {email,title,description,duration} = req.body;
+  try{
+
+  const creator = await creatorModel.create({
+    email: email
+  })
+  await creator.save();
+
+  const startDate = new Date(); 
+  const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000); 
+
+  const dLink=generateRandomString();
+  const adminLink=generateRandomString();
+
+  console.log("dLink",dLink);
+  console.log("adminLink",adminLink);
+
+  const discussion = await discussionModel.create({
+    title: title,
+    description: description,
+    startDate: startDate,
+    endDate: endDate,
+    dLink: dLink,
+    adminLink: adminLink,
+    creatorId: creator._id,
+    isVotingStarted: false
+  })
+
+  await discussion.save();
+
+  return res.status(200).json({ message: discussion });
+}catch(error){
+  return res.status(400).json({ message: error.message });
+}
 };
 
 const getSingleDiscussion = async (req, res) => {

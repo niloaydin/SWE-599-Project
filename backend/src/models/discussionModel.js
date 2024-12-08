@@ -5,8 +5,8 @@ const discussionSchema = new mongoose.Schema({
   description: { type: String },
   startDate: { type: Date },
   endDate: { type: Date },
-  adminLink: { type: String },
-  dLink: { type: String, required: true},
+  adminLink: { type: String, unique: true },
+  dLink: { type: String, required: true, unique: true },
   creatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Creator',
