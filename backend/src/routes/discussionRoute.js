@@ -21,6 +21,6 @@ router.post(
 );
 
 router.post('/:discussionLink/:userLink/vote', voteController.voteForDiscussion);
-router.delete('/:discussionLink/:userLink/vote', voteController.removeVoteForDiscussion);
+router.delete('/:discussionLink/:userLink/vote/:voteId', voteController.removeVoteForDiscussion);
 router.post('/:discussionLink/:userLink/comment', commentController.commentOnDiscussion);
 router.get('/:discussionLink/:userLink/comments', commentController.getCommentsForDiscussion);
