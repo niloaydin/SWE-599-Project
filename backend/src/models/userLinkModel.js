@@ -6,6 +6,11 @@ const userLinkSchema = new mongoose.Schema({
     ref: 'Collector',
     required: true,
   },
+  discussionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Discussion',
+    required: true,
+  },
   linkUUID: { type: String, required: true },
   email: { type: String},
 });
