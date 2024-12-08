@@ -137,6 +137,50 @@ const createCollectorForDiscussion = async (req, res) => {
   }
 };
 
+
+// const updateDiscussion = async (req, res) => {
+//   const { discussionLink } = req.params; // Get the discussion ID from the URL parameters
+//   const { title, description, duration, isVotingStarted } = req.body; // Extract fields from the request body
+
+//   try {
+//     // Find the discussion by ID
+//     const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+
+//     if (!discussion) {
+//       return res.status(404).json({ message: 'Discussion not found.' });
+//     }
+
+//     // Update title if provided
+//     if (title) {
+//       discussion.title = title;
+//     }
+
+//     // Update description if provided
+//     if (description) {
+//       discussion.description = description;
+//     }
+
+//     // Update duration (startDate and endDate) if provided
+//     if (duration) {
+//       const startDate = discussion.startDate || new Date(); // Use existing startDate or current date
+//       const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000); // Calculate new endDate
+//       discussion.endDate = endDate;
+//     }
+
+//     // Update isVotingStarted flag if provided
+//     if (typeof isVotingStarted === 'boolean') {
+//       discussion.isVotingStarted = isVotingStarted;
+//     }
+
+//     // Save the updated discussion
+//     await discussion.save();
+
+//     return res.status(200).json({ message: 'Discussion updated successfully.', discussion });
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(400).json({ message: error.message });
+//   }
+// };
 // const createDiscussionGeneralLink = async (req, res) => {
 //   console.log('createDiscussionGeneralLink controller');
 //   return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
@@ -150,5 +194,6 @@ const createCollectorForDiscussion = async (req, res) => {
 module.exports = {
   createDiscussion,
   getSingleDiscussion,
-  createCollectorForDiscussion
+  createCollectorForDiscussion,
+  // updateDiscussion
 };

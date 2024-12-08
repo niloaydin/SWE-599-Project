@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post('/create', discussionController.createDiscussion);
 router.get('/:discussionLink/:userLink', discussionController.getSingleDiscussion);
+// router.put('/:discussionLink/update', discussionController.updateDiscussion);
 router.post(
     '/:discussionLink/create-collector',
     discussionController.createCollectorForDiscussion
