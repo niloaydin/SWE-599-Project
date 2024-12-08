@@ -13,6 +13,7 @@ const discussionSchema = new mongoose.Schema({
     required: true,
   },
   isVotingStarted: { type: Boolean, default: false },
+  isEmailSent:{type:Boolean,default:false}
 });
 
 const Discussion = mongoose.model('Discussion', discussionSchema);
