@@ -19,6 +19,9 @@ router.post('/:discussionLink/:userLink/vote', voteController.voteForDiscussion)
 router.post('/:discussionLink/a/:adminLink/comment', commentController.commentOnDiscussion);
 router.post('/:discussionLink/:userLink/comment', commentController.commentOnDiscussion);
 
+router.post('/:discussionLink/a/:adminLink/end-voting', voteController.endVotingPeriod);
+
+
 
 router.get('/:discussionLink/:userLink/comment', commentController.getCommentsForDiscussion);
 
