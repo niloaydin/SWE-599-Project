@@ -15,14 +15,16 @@ const checkDiscussionsForVoting = async () => {
             isVotingStarted: false,
             isEmailSent: false,
         });
-        
+
         console.log(`discussionsToUpdate: ${discussionsToUpdate}`);
 
         if (discussionsToUpdate.length > 0) {
             await Promise.all(
                 discussionsToUpdate.map(async (discussion) => {
+
                     discussion.isVotingStarted = true;
                     await discussion.save();
+
                     console.log(`Voting started for discussion: ${discussion.title}`);
 
                     const usersWithEmails = await UserLinkModel.find({
@@ -47,15 +49,14 @@ const checkDiscussionsForVoting = async () => {
                         await Promise.all(
                             userDetails.map(({ email, userLink, isCreator }) => {
                                 const discussionLink = process.env.BASE_URL + `/discussion/${discussion.dLink}/${userLink}/vote`
-
+                                const adminLink = process.env.BASE_URL + `/discussion/${discussion.dLink}/a/${discussion.adminLink}`
                                 const subject = isCreator
                                     ? `Your Discussion Voting Started: ${discussion.title}`
                                     : `Voting Started: ${discussion.title}`;
 
                                 const text = isCreator
-                                    ? `Hello, the voting for your discussion "${discussion.title}" has started!`
+                                    ? `Hello, the voting for your discussion "${discussion.title}" has started!  <a href="${adminLink}">Click here</a> to see your discussion.`
                                     : `Hello, the voting for the discussion "${discussion.title}" has started! <a href="${discussionLink}">Click here</a> to vote.`;
-
 
                                 sendEmail({
                                     to: email,
@@ -68,8 +69,10 @@ const checkDiscussionsForVoting = async () => {
                         console.log(
                             `Emails sent!`
                         );
+
                         discussion.isEmailSent = true;
                         await discussion.save();
+                        
                     } else {
                         console.log('No email addresses found for this discussion.');
                     }
