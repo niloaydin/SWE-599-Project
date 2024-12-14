@@ -11,5 +11,7 @@ const collectorSchema = new mongoose.Schema({
   collectorType: { type: String },
 });
 
+collectorSchema.index({ discussionId: 1, collectorName: 1 }, { unique: true });
+
 const Collector = mongoose.model('Collector', collectorSchema);
 module.exports = Collector;

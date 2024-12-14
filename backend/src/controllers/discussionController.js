@@ -45,15 +45,28 @@ const createDiscussion = async (req, res) => {
 };
 
 const getSingleDiscussion = async (req, res) => {
-  const { discussionLink, userLink } = req.params;
+  const { discussionLink } = req.params;
+  const userLink = req.params.userLink || null;
+  const adminLink = req.params.adminLink || null;
   try {
+
+
     const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
     if (!discussion) {
       return res.status(404).json({ error: 'Discussion not found' });
     }
-    const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
-    if (!userLinkData) {
-      return res.status(404).json({ error: 'You cannot review this discussion!' });
+
+    if (adminLink) {
+
+      if (adminLink !== discussion.adminLink) {
+        return res.status(403).json({ error: 'Invalid admin access!' });
+      }
+    } else {
+
+      const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+      if (!userLinkData) {
+        return res.status(404).json({ error: 'You cannot view this discussion!' });
+      }
     }
 
     const comments = await CommentModel.find({ discussionId: discussion._id });
@@ -78,10 +91,11 @@ const getSingleDiscussion = async (req, res) => {
 }
 
 const createCollectorForDiscussion = async (req, res) => {
-  const { discussionLink } = req.params;
+  const { discussionLink, adminLink } = req.params;
   const { collectorName, emails, type } = req.body;
 
   try {
+    
     if (!['general', 'specific'].includes(type)) {
       return res.status(400).json({ error: 'Invalid collector type' });
     }
@@ -90,6 +104,10 @@ const createCollectorForDiscussion = async (req, res) => {
 
     if (!discussion) {
       return res.status(404).json({ error: 'Discussion not found' });
+    }
+
+    if (adminLink !== discussion.adminLink) {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
     }
 
     const collector = await CollectorModel.create({
@@ -182,13 +200,13 @@ const createCollectorForDiscussion = async (req, res) => {
 //   }
 // };
 // const createDiscussionGeneralLink = async (req, res) => {
-//   console.log('createDiscussionGeneralLink controller');
-//   return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
+//     console.log('createDiscussionGeneralLink controller');
+//     return res.status(200).json({ message: 'createDiscussionGeneralLink controller' });
 // };
 
 // const createPersonalizedDiscussionLink = async (req, res) => {
-//   console.log('createPersonalizedDiscussionLink controller');
-//   return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
+//     console.log('createPersonalizedDiscussionLink controller');
+//     return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
 // };
 
 module.exports = {
