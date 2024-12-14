@@ -25,8 +25,8 @@ const voteForDiscussion = async (req, res) => {
             return res.status(404).json({ error: 'You cannot review this discussion!' });
         }
 
-        if (!discussion.isVotingStarted) {
-            return res.status(400).json({ message: 'Voting has not started for this discussion.' });
+        if (!discussion.isVotingStarted || discussion.isVotingEnded) {
+            return res.status(400).json({ message: 'You cannot vote for this discussion!' });
         }
 
         const emailCollectorVote = await EmailCollectorVoteModel.findOne({ userLinkId: userLinkData._id });
@@ -59,7 +59,35 @@ const removeVoteForDiscussion = async (req, res) => {
     return res.status(200).json({ message: 'removeVoteForDiscussion controller' });
 }
 
+
+const endVotingPeriod = async (req, res) => {
+    const { discussionLink, adminLink } = req.params;
+
+    try {
+        const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+        if (!discussion) {
+            return res.status(404).json({ message: 'Discussion not found.' });
+        }
+
+        if (discussion.adminLink !== adminLink) {
+            return res.status(403).json({ message: 'Invalid admin access!' });
+        }
+
+        if (discussion.isVotingEnded || !discussion.isVotingStarted) {
+            return res.status(400).json({ message: 'Cannot end the voting period for this discussion' });
+        }
+
+        discussion.isVotingEnded = true;
+        await discussion.save();
+
+        return res.status(200).json({ message: 'Voting period has ended successfully!' });
+    } catch (error) {
+        return res.status(400).json({ message: error.message });
+    }
+}
+
 module.exports = {
     voteForDiscussion,
-    removeVoteForDiscussion
+    removeVoteForDiscussion,
+    endVotingPeriod
 }
