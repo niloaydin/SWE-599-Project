@@ -3,6 +3,7 @@ const DiscussionModel = require('../models/discussionModel');
 const UserLinkModel = require('../models/userLinkModel');
 const VoteModel = require('../models/voteModel');
 const EmailCollectorVoteModel = require('../models/emailCollectorVoteModel');
+const { CollectorModel } = require('../models');
 
 const voteForDiscussion = async (req, res) => {
 
@@ -12,7 +13,7 @@ const voteForDiscussion = async (req, res) => {
     try {
 
         if (!['yes', 'no', 'abstention'].includes(voteType)) {
-            return res.status(400).json({ error: 'Invalid collector type' });
+            return res.status(400).json({ error: 'Invalid vote type' });
         }
 
         const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
@@ -21,13 +22,15 @@ const voteForDiscussion = async (req, res) => {
         }
 
         const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
-        if (!userLinkData) {
+        if (!userLinkData && userLink !== discussion.adminLink) {
             return res.status(404).json({ error: 'You cannot review this discussion!' });
         }
 
         if (!discussion.isVotingStarted) {
             return res.status(400).json({ message: 'Voting has not started for this discussion.' });
         }
+
+        const collectorInfo = await CollectorModel.findOne({ _id: userLinkData.collectorId });
 
         const emailCollectorVote = await EmailCollectorVoteModel.findOne({ userLinkId: userLinkData._id });
 
@@ -43,10 +46,13 @@ const voteForDiscussion = async (req, res) => {
             voteType: voteType
         })
 
-        await EmailCollectorVoteModel.create({
-            userLinkId: userLinkData._id,
-            collectorId: userLinkData.collectorId
-        })
+        if (collectorInfo.collectorType === 'specific') {
+
+            await EmailCollectorVoteModel.create({
+                userLinkId: userLinkData._id,
+                collectorId: userLinkData.collectorId
+            })
+        }
 
         return res.status(200).json({ message: 'Vote has been casted successfully!' });
     } catch (error) {

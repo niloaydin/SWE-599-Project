@@ -3,6 +3,7 @@ const DiscussionModel = require('../models/discussionModel');
 const UserLinkModel = require('../models/userLinkModel');
 const CollectorModel = require('../models/collectorModel');
 const CommentModel = require('../models/commentModel');
+const VoteModel = require('../models/voteModel');
 const { generateRandomString } = require('../utils/discussionUtils');
 
 const createDiscussion = async (req, res) => {
@@ -19,7 +20,7 @@ const createDiscussion = async (req, res) => {
     }
 
     const startDate = new Date();
-    const endDate = new Date(startDate.getTime() + duration * 24 * 60 * 60 * 1000);
+    const endDate = new Date(startDate.getTime() + duration * 1 * 60 * 1000);
 
     const dLink = generateRandomString();
     const adminLink = generateRandomString();
@@ -45,9 +46,7 @@ const createDiscussion = async (req, res) => {
 };
 
 const getSingleDiscussion = async (req, res) => {
-  const { discussionLink } = req.params;
-  const userLink = req.params.userLink || null;
-  const adminLink = req.params.adminLink || null;
+  const { discussionLink, userLink } = req.params;
   try {
 
 
@@ -56,17 +55,10 @@ const getSingleDiscussion = async (req, res) => {
       return res.status(404).json({ error: 'Discussion not found' });
     }
 
-    if (adminLink) {
+    const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
 
-      if (adminLink !== discussion.adminLink) {
-        return res.status(403).json({ error: 'Invalid admin access!' });
-      }
-    } else {
-
-      const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
-      if (!userLinkData) {
-        return res.status(404).json({ error: 'You cannot view this discussion!' });
-      }
+    if (!userLinkData && userLink !== discussion.adminLink) {
+      return res.status(404).json({ error: 'You cannot review this discussion!' });
     }
 
     const comments = await CommentModel.find({ discussionId: discussion._id });
@@ -95,11 +87,13 @@ const createCollectorForDiscussion = async (req, res) => {
   const { collectorName, emails, type } = req.body;
 
   try {
-    
+
     if (!['general', 'specific'].includes(type)) {
       return res.status(400).json({ error: 'Invalid collector type' });
     }
-
+    if (type === 'specific' && (!Array.isArray(emails) || emails.length === 0)) {
+      return res.status(400).json({ error: 'Emails must be provided as a non-empty array for specific collector type' });
+    }
     const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
 
     if (!discussion) {
@@ -110,52 +104,171 @@ const createCollectorForDiscussion = async (req, res) => {
       return res.status(403).json({ error: 'Unauthorized: Admin access required' });
     }
 
-    const collector = await CollectorModel.create({
+    const existingCollector = await CollectorModel.findOne({
       discussionId: discussion._id,
       collectorName: collectorName,
-      collectorType: type,
-      listLinks: []
-    })
+    });
+    if (existingCollector) {
+      return res.status(400).json({ error: `Collector with name "${collectorName}" already exists for this discussion.` });
+    }
 
     let listLinks = [];
+    const userLinks = [];
 
     if (type === 'general') {
       const generalLink = generateRandomString();
       listLinks.push(generalLink);
 
-      await UserLinkModel.create({
-        collectorId: collector._id,
+      userLinks.push({
         discussionId: discussion._id,
         linkUUID: generalLink,
-      })
+      });
 
     } else if (type === 'specific' && emails && emails.length > 0) {
 
       for (const email of emails) {
         const personalizedLink = generateRandomString();
 
-        await UserLinkModel.create({
-          collectorId: collector._id,
+        listLinks.push(personalizedLink);
+        userLinks.push({
           discussionId: discussion._id,
           email: email,
-          linkUUID: personalizedLink
-        })
-
-        listLinks.push(personalizedLink);
+          linkUUID: personalizedLink,
+        });
 
       }
     }
 
-    collector.listLinks = listLinks;
-    await collector.save();
+    const collector = await CollectorModel.create({
+      discussionId: discussion._id,
+      collectorName: collectorName,
+      collectorType: type,
+      listLinks: listLinks
+    })
+
+    userLinks.forEach((link) => {
+      link.collectorId = collector._id;
+    });
+    await UserLinkModel.insertMany(userLinks);
 
     return res.status(200).json({ message: collector });
+
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: `Duplicate email detected for discussion: ${emails}` });
+    }
     return res.status(400).json({ message: error.message });
   }
 };
 
 
+const getVotingResultsForCollectors = async (req, res) => {
+  try {
+    const { discussionLink, adminLink } = req.params;
+    const { collectorIds } = req.query;
+
+    const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+    if (!discussion) {
+      return res.status(404).json({ error: 'Discussion not found.' });
+    }
+
+
+    if (adminLink !== discussion.adminLink) {
+      return res.status(403).json({ error: 'Unauthorized access.' });
+    }
+
+
+    const collectorQuery = { discussionId: discussion._id };
+    if (collectorIds) {
+      const collectorIdArray = collectorIds.split(" ")
+      collectorQuery._id = { $in: collectorIdArray };
+    }
+
+    const collectors = await CollectorModel.find(collectorQuery);
+    if (!collectors.length) {
+      return res.status(404).json({ error: 'No collectors found.' });
+    }
+
+    const results = await Promise.all(
+      collectors.map(async (collector) => {
+        const votes = await VoteModel.aggregate([
+          { $match: { collectorId: collector._id } },
+          {
+            $group: {
+              _id: '$voteType',
+              count: { $sum: 1 },
+            },
+          },
+        ]);
+
+
+        const voteSummary = votes.reduce((acc, vote) => {
+          acc[vote._id] = vote.count;
+          return acc;
+        }, {});
+
+        return {
+          collectorId: collector._id,
+          collectorName: collector.collectorName,
+          collectorType: collector.collectorType,
+          totalVotes: votes.reduce((sum, vote) => sum + vote.count, 0),
+          voteSummary, // E.g., { yes: 10, no: 5, abstention: 3 }
+        };
+      })
+    );
+
+    res.status(200).json({ message: results })
+  } catch (error) {
+    console.error('Error fetching voting results:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+const getCollectorsWithLinks = async (req, res) => {
+  const { discussionLink, adminLink } = req.params;
+
+  try {
+    const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+    console.log("discussion", discussion._id);
+    if (!discussion) {
+      return res.status(404).json({ error: 'Discussion not found' });
+    }
+
+    console.log("adminLink", adminLink);
+    console.log("discussion.adminLink", discussion.adminLink);
+
+    if (adminLink !== discussion.adminLink) {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+    }
+
+
+    const collectors = await CollectorModel.find({ discussionId: discussion._id });
+
+    if (!collectors.length) {
+      return res.status(404).json({ error: 'No collectors found for this discussion.' });
+    }
+
+    const collectorData = await Promise.all(
+      collectors.map(async (collector) => {
+        const userLinks = await UserLinkModel.find({ collectorId: collector._id });
+        const links = userLinks.map((link) => ({
+          linkUUID: link.linkUUID,
+          email: link.email || null, // Include email if available
+        }));
+        return {
+          collectorName: collector.collectorName,
+          links,
+        };
+      })
+    );
+
+    return res.status(200).json({ collectors: collectorData });
+  } catch (error) {
+    console.error('Error fetching collectors with links:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
 // const updateDiscussion = async (req, res) => {
 //   const { discussionLink } = req.params; // Get the discussion ID from the URL parameters
 //   const { title, description, duration, isVotingStarted } = req.body; // Extract fields from the request body
@@ -209,9 +322,12 @@ const createCollectorForDiscussion = async (req, res) => {
 //     return res.status(200).json({ message: 'createPersonalizedDiscussionLink controller' });
 // };
 
+
 module.exports = {
   createDiscussion,
   getSingleDiscussion,
   createCollectorForDiscussion,
+  getVotingResultsForCollectors,
+  getCollectorsWithLinks
   // updateDiscussion
 };
