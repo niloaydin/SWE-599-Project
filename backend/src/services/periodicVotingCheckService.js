@@ -1,6 +1,7 @@
 
 const DiscussionModel = require('../models/discussionModel');
 const UserLinkModel = require('../models/userLinkModel');
+const CreatorModel = require('../models/creatorModel');
 const { sendEmail } = require('./emailService');
 require('dotenv').config();
 
@@ -10,10 +11,12 @@ const checkDiscussionsForVoting = async () => {
         const now = new Date();
 
         const discussionsToUpdate = await DiscussionModel.find({
-            startDate: { $lte: now },
+            endDate: { $lte: now },
             isVotingStarted: false,
             isEmailSent: false,
         });
+        
+        console.log(`discussionsToUpdate: ${discussionsToUpdate}`);
 
         if (discussionsToUpdate.length > 0) {
             await Promise.all(
@@ -37,23 +40,23 @@ const checkDiscussionsForVoting = async () => {
                             email: user.email,
                             userLink: user.linkUUID,
                         })),
-                        ...(creator ? [{ email: creator.email, userLink: '', isCreator:true}] : []),
+                        ...(creator ? [{ email: creator.email, userLink: '', isCreator: true }] : []),
                     ];
 
                     if (userDetails.length > 0) {
                         await Promise.all(
                             userDetails.map(({ email, userLink, isCreator }) => {
                                 const discussionLink = process.env.BASE_URL + `/discussion/${discussion.dLink}/${userLink}/vote`
-                                
-                                const subject = isCreator
-                                ? `Your Discussion Voting Started: ${discussion.title}`
-                                : `Voting Started: ${discussion.title}`;
-              
-                              const text = isCreator
-                                ? `Hello, the voting for your discussion "${discussion.title}" has started!`
-                                : `Hello, the voting for the discussion "${discussion.title}" has started! <a href="${discussionLink}">Click here</a> to vote.`;
 
-                                
+                                const subject = isCreator
+                                    ? `Your Discussion Voting Started: ${discussion.title}`
+                                    : `Voting Started: ${discussion.title}`;
+
+                                const text = isCreator
+                                    ? `Hello, the voting for your discussion "${discussion.title}" has started!`
+                                    : `Hello, the voting for the discussion "${discussion.title}" has started! <a href="${discussionLink}">Click here</a> to vote.`;
+
+
                                 sendEmail({
                                     to: email,
                                     subject,

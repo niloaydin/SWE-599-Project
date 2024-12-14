@@ -45,16 +45,28 @@ const createDiscussion = async (req, res) => {
 };
 
 const getSingleDiscussion = async (req, res) => {
-  const { discussionLink, userLink } = req.params;
+  const { discussionLink } = req.params;
+  const userLink = req.params.userLink || null;
+  const adminLink = req.params.adminLink || null;
   try {
+
+
     const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
     if (!discussion) {
       return res.status(404).json({ error: 'Discussion not found' });
     }
-    const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
 
-    if (!userLinkData && userLink !== discussion.adminLink) {
-      return res.status(404).json({ error: 'You cannot review this discussion!' });
+    if (adminLink) {
+
+      if (adminLink !== discussion.adminLink) {
+        return res.status(403).json({ error: 'Invalid admin access!' });
+      }
+    } else {
+
+      const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+      if (!userLinkData) {
+        return res.status(404).json({ error: 'You cannot view this discussion!' });
+      }
     }
 
     const comments = await CommentModel.find({ discussionId: discussion._id });
@@ -79,10 +91,11 @@ const getSingleDiscussion = async (req, res) => {
 }
 
 const createCollectorForDiscussion = async (req, res) => {
-  const { discussionLink } = req.params;
+  const { discussionLink, adminLink } = req.params;
   const { collectorName, emails, type } = req.body;
 
   try {
+    
     if (!['general', 'specific'].includes(type)) {
       return res.status(400).json({ error: 'Invalid collector type' });
     }
@@ -91,6 +104,10 @@ const createCollectorForDiscussion = async (req, res) => {
 
     if (!discussion) {
       return res.status(404).json({ error: 'Discussion not found' });
+    }
+
+    if (adminLink !== discussion.adminLink) {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
     }
 
     const collector = await CollectorModel.create({

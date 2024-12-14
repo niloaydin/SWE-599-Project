@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 const mongoose = require('mongoose');
-
+require('dotenv').config();
 const mongo_db_password = process.env.MONGO_DB_PASSWORD;
 
 let url = `mongodb+srv://nilay:${mongo_db_password}@cluster0.6zfqt.mongodb.net/`;

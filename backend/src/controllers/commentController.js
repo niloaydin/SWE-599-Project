@@ -5,7 +5,9 @@ const CollectorModel = require('../models/collectorModel');
 const CommentModel = require('../models/commentModel');
 
 const commentOnDiscussion = async (req, res) => {
-    const { discussionLink, userLink } = req.params;
+    const { discussionLink } = req.params;
+    const userLink = req.params.userLink || null;
+    const adminLink = req.params.adminLink || null;
     const { content, commentType } = req.body;
 
     try {
@@ -13,17 +15,24 @@ const commentOnDiscussion = async (req, res) => {
         if (!discussion) {
           return res.status(404).json({ error: 'Discussion not found' });
         }
-        const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
-        if (!userLinkData) {
-          return res.status(404).json({ error: 'You cannot review this discussion!' });
+
+        if (adminLink) {
+            if (adminLink !== discussion.adminLink) {
+                return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+            }
+        } else {
+            const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+
+            if (!userLinkData) {
+                return res.status(404).json({ error: 'You cannot comment on this discussion!' });
+            }
         }
 
         if (!content || !['pros', 'cons'].includes(commentType)) {
             return res.status(400).json({ message: 'Invalid comment data.' });
-          }
-
+        }
+        
         await CommentModel.create({
-            collectorId: userLinkData.collectorId,
             discussionId: discussion._id,
             content: content,
             commentType: commentType
