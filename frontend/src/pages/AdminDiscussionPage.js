@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Spin, notification } from "antd";
+import { Spin, notification, Modal } from "antd";
 import axios from "axios";
 import BASE_URL from "../config/baseUrl";
 import DiscussionCard from "../components/DiscussionCard";
+import CreateCollectorGroup from "../components/CreateCollectorGroup";
 
 const AdminDiscussionPage = () => {
     const { discussionLink, adminLink } = useParams();
     const [discussion, setDiscussion] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isModalVisible, setIsModalVisible] = useState(false);
     const navigate = useNavigate();
 
     const fetchDiscussion = async () => {
         setLoading(true);
         try {
             const response = await axios.get(
-                `${BASE_URL}/api/discussion/${discussionLink}/${adminLink}`
+                `${BASE_URL}/discussion/${discussionLink}/${adminLink}`
             );
             setDiscussion(response.data.message);
         } catch (error) {
@@ -31,6 +33,16 @@ const AdminDiscussionPage = () => {
     useEffect(() => {
         fetchDiscussion();
     }, [discussionLink, adminLink]);
+
+    const handleCreateCollector = () => {
+        setIsModalVisible(true);
+    };
+
+    const handleModalClose = () => {
+        setIsModalVisible(false);
+    };
+
+
 
     if (loading) {
         return (
@@ -51,10 +63,31 @@ const AdminDiscussionPage = () => {
             <DiscussionCard
                 discussion={discussion}
                 buttonText="Create Collector Group"
-                onButtonClick={() =>
-                    navigate(`/discussion/${discussionLink}/a/${adminLink}/create-collector`)
-                }
+
             />
+            {!discussion.isVotingStarted && (
+                <button
+                    className="ant-btn ant-btn-primary"
+                    style={{ marginTop: 20, display: "block", margin: "0 auto" }}
+                    onClick={handleCreateCollector}
+                >
+                    Create Collector Group
+                </button>
+            )}
+
+            <Modal
+                title="Create Collector Group"
+                visible={isModalVisible}
+                onCancel={handleModalClose}
+                footer={null} // Remove default footer
+            >
+                <CreateCollectorGroup
+                    discussionLink={discussionLink}
+                    adminLink={adminLink}
+                    onCollectorCreated={fetchDiscussion} 
+                    onClose={handleModalClose} 
+                />
+            </Modal>
         </div>
     );
 };
