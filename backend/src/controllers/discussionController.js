@@ -74,6 +74,7 @@ const getSingleDiscussion = async (req, res) => {
       endDate: discussion.endDate,
       isVotingStarted: discussion.isVotingStarted,
       isVotingEnded: discussion.isVotingEnded,
+      isEmailSent: discussion.isEmailSent,
       prosComments: prosComments,
       consComments: consComments
     }
