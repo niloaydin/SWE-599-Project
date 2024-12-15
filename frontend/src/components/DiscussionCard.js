@@ -18,7 +18,7 @@ const DiscussionCard = ({ discussion, onButtonClick, buttonText }) => {
       </p>
       <p>Has Voting Started?</p> {discussion.isVotingStarted ? "Yes" : "No"}
       <p>Has Voting Ended?</p> {discussion.isVotingEnded ? "Yes" : "No"}
-      <p>Has Emails Been Sent?</p> {discussion.isEmailsSent ? "Yes" : "No"}
+      <p>Has Emails Been Sent?</p> {discussion.isEmailSent ? "Yes" : "No"}
 
       <CountdownClock endDate={discussion.endDate} />
 

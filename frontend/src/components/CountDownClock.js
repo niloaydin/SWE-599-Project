@@ -26,11 +26,11 @@ const CountdownClock = ({ endDate }) => {
             setTimeLeft(calculateTimeLeft());
         }, 1000);
 
-        return () => clearInterval(timer); 
+        return () => clearInterval(timer);
     }, [endDate]);
 
     if (timeLeft.expired) {
-        return <div style={{ color: "red", fontWeight: "bold" }}>Discussion Ended</div>;
+        return <div style={{ color: "red", fontWeight: "bold" }}>Discussion period has ended!</div>;
     }
 
     return (
