@@ -16,7 +16,7 @@ app.use(express.json());
 
 app.use("/api/discussion", discussionRoutes);
 
-setInterval(checkDiscussionsForVoting, 12 * 60 * 60 * 1000); //check every 12 hours
+setInterval(checkDiscussionsForVoting, 1 * 60 * 1000); //check every 12 hours
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => {

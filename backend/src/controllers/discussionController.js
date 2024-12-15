@@ -5,6 +5,7 @@ const CollectorModel = require('../models/collectorModel');
 const CommentModel = require('../models/commentModel');
 const VoteModel = require('../models/voteModel');
 const { generateRandomString } = require('../utils/discussionUtils');
+const { fetchVotingResultsForCollectors } = require('../utils/fetchVotingResultForCollectors');
 
 const createDiscussion = async (req, res) => {
 
@@ -188,34 +189,9 @@ const getVotingResultsForCollectors = async (req, res) => {
     if (!collectors.length) {
       return res.status(404).json({ error: 'No collectors found.' });
     }
+    const collectorIdsToFetch = collectors.map((collector) => collector._id);
 
-    const results = await Promise.all(
-      collectors.map(async (collector) => {
-        const votes = await VoteModel.aggregate([
-          { $match: { collectorId: collector._id } },
-          {
-            $group: {
-              _id: '$voteType',
-              count: { $sum: 1 },
-            },
-          },
-        ]);
-
-
-        const voteSummary = votes.reduce((acc, vote) => {
-          acc[vote._id] = vote.count;
-          return acc;
-        }, {});
-
-        return {
-          collectorId: collector._id,
-          collectorName: collector.collectorName,
-          collectorType: collector.collectorType,
-          totalVotes: votes.reduce((sum, vote) => sum + vote.count, 0),
-          voteSummary, // E.g., { yes: 10, no: 5, abstention: 3 }
-        };
-      })
-    );
+    const results = await fetchVotingResultsForCollectors(collectorIdsToFetch);
 
     res.status(200).json({ message: results })
   } catch (error) {
@@ -225,7 +201,7 @@ const getVotingResultsForCollectors = async (req, res) => {
 };
 
 
-const getCollectorsWithLinks = async (req, res) => {
+const getCollectorInfo = async (req, res) => {
   const { discussionLink, adminLink } = req.params;
 
   try {
@@ -249,26 +225,89 @@ const getCollectorsWithLinks = async (req, res) => {
       return res.status(404).json({ error: 'No collectors found for this discussion.' });
     }
 
-    const collectorData = await Promise.all(
-      collectors.map(async (collector) => {
-        const userLinks = await UserLinkModel.find({ collectorId: collector._id });
-        const links = userLinks.map((link) => ({
-          linkUUID: link.linkUUID,
-          email: link.email || null, // Include email if available
-        }));
-        return {
-          collectorName: collector.collectorName,
-          links,
-        };
-      })
-    );
-
-    return res.status(200).json({ collectors: collectorData });
+    return res.status(200).json({ message: collectors });
   } catch (error) {
     console.error('Error fetching collectors with links:', error);
     return res.status(500).json({ error: error.message });
   }
 }
+
+const setResultsForParticipants = async (req, res) => {
+  try {
+    const { discussionLink, adminLink } = req.params;
+    const { collectorIds } = req.body;
+
+    const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+    if (!discussion) {
+      return res.status(400).json({ error: 'Discussion not found.' });
+    }
+
+    if (adminLink !== discussion.adminLink) {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required.' });
+    }
+    if (!discussion.isVotingEnded) {
+      return res.status(400).json({ error: 'Voting period has not ended!' });
+    }
+
+    if (!collectorIds || !Array.isArray(collectorIds) || collectorIds.length === 0) {
+      return res.status(400).json({ error: 'No collectors selected.' });
+    }
+
+    discussion.selectedCollectorIds = collectorIds;
+    await discussion.save();
+
+    return res.status(200).json({ message: 'Results selection saved successfully.' });
+  } catch (error) {
+    console.error('Error setting results for participants:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}
+
+const getResultsForParticipants = async (req, res) => {
+  const { discussionLink, userLink } = req.params;
+  try {
+    const discussion = await DiscussionModel.findOne({ dLink: discussionLink });
+    if (!discussion) {
+      return res.status(404).json({ error: 'Discussion not found' });
+    }
+
+    const userLinkData = await UserLinkModel.findOne({ linkUUID: userLink, discussionId: discussion._id });
+
+    if (!userLinkData && userLink !== discussion.adminLink) {
+      return res.status(404).json({ error: 'You cannot review this discussion!' });
+    }
+
+    if (!discussion.selectedCollectorIds || discussion.selectedCollectorIds.length === 0) {
+      return res.status(400).json({ error: 'No results have been approved for this discussion.' });
+    }
+
+    const results = await fetchVotingResultsForCollectors(discussion.selectedCollectorIds);
+
+    res.status(200).json({ results });
+  } catch (error) {
+    console.error('Error fetching results for participants:', error);
+    return res.status(500).json({ error: error.message });
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // const updateDiscussion = async (req, res) => {
 //   const { discussionLink } = req.params; // Get the discussion ID from the URL parameters
 //   const { title, description, duration, isVotingStarted } = req.body; // Extract fields from the request body
@@ -328,6 +367,8 @@ module.exports = {
   getSingleDiscussion,
   createCollectorForDiscussion,
   getVotingResultsForCollectors,
-  getCollectorsWithLinks
+  getCollectorInfo,
+  setResultsForParticipants,
+  getResultsForParticipants
   // updateDiscussion
 };
