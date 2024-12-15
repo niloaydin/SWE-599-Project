@@ -3,6 +3,7 @@ import { Card, List, Row, Col } from "antd";
 import CountdownClock from "./CountDownClock";
 
 const DiscussionCard = ({ discussion, onButtonClick, buttonText }) => {
+  console.log(`discussion in discussion card = ${JSON.stringify(discussion)}`);
   return (
     <Card title={`Discussion: ${discussion.title}`} bordered>
       <p>
@@ -15,9 +16,9 @@ const DiscussionCard = ({ discussion, onButtonClick, buttonText }) => {
       <p>
         <strong>End Date:</strong> {new Date(discussion.endDate).toLocaleString()}
       </p>
-      <p>Has Voting Started?</p> {discussion.hasVotingStarted ? "Yes" : "No"}
-      <p>Has Voting Ended?</p> {discussion.hasVotingEnded ? "Yes" : "No"}
-      <p>Has Emails Been Sent?</p> {discussion.hasEmailsSent ? "Yes" : "No"}
+      <p>Has Voting Started?</p> {discussion.isVotingStarted ? "Yes" : "No"}
+      <p>Has Voting Ended?</p> {discussion.isVotingEnded ? "Yes" : "No"}
+      <p>Has Emails Been Sent?</p> {discussion.isEmailsSent ? "Yes" : "No"}
 
       <CountdownClock endDate={discussion.endDate} />
 
